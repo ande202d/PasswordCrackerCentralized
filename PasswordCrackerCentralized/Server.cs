@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using PasswordCrackerCentralized.model;
 using PasswordCrackerCentralized.util;
@@ -95,6 +96,7 @@ namespace PasswordCrackerCentralized
                 try
                 {
                     message = sr.ReadLine();
+
                     if (message == "hack")
                     {
                         /*  sende alt bruger userInfos
@@ -105,13 +107,52 @@ namespace PasswordCrackerCentralized
                          * liste bliver 0 imens den anden kigger på den
                          */
 
+                        //int i = 10000;
+                        //while (i > 0)
+                        //{
+                        //    i--;
+                        //    if (i % 2 == 0) continue;
+                        //    Console.WriteLine(i);
+                        //    sw.WriteLine(i);
+                        //}
 
                         while (_inCompletedChunks.Count > 0)
                         {
-                            foreach (int inCompletedChunk in _inCompletedChunks)
+                            if (_inCompletedChunks[0] == -1)
                             {
-                                if (_doingChunks.Contains(inCompletedChunk)) continue;
+                                break;
+                            }
+                            //foreach (int inCompletedChunk in _inCompletedChunks)
+                            //{
+                            //}
+
+                            //taking the first not completed chunk
+                            int inCompletedChunk = _inCompletedChunks[0];
+
+                            //if this chunk is already being processed, and quickly setting this to doingChunks
+                            //----------------------------------------------------------------------------------------------------------------------
+                            //THIS NEEDS TO BE LOCKED OR SOMETHING, SO ONLY ONE THREAD AND LOOK AND TAKE A CHUNK AT A TIME, 
+                            //THEN WHEN A THREAD HAVE PICKED A CHUNK, IT MOVES ON AND LETS THE NEXT THREAD LOOK AND TAKE
+                            if (_doingChunks.Contains(inCompletedChunk))
+                            {
+                                while (_doingChunks.Contains(inCompletedChunk))
+                                {
+                                    if (_inCompletedChunks.Last() > inCompletedChunk)
+                                    {
+                                        inCompletedChunk++;
+                                    }
+                                    else
+                                    {
+                                        inCompletedChunk = -1;
+                                    }
+                                }
                                 _doingChunks.Add(inCompletedChunk);
+                            }
+                            else _doingChunks.Add(inCompletedChunk);
+
+                            if (inCompletedChunk != -1)
+                            {
+                                //_doingChunks.Add(inCompletedChunk);
                                 List<string> listToWorkOn = Chunks[inCompletedChunk];
                                 Console.WriteLine($"WORKING ON: {inCompletedChunk}");
                                 foreach (string line in listToWorkOn)
@@ -120,24 +161,44 @@ namespace PasswordCrackerCentralized
                                     //result.AddRange(partialResult);
                                     sw.WriteLine(line);
                                 }
+                                Thread.Sleep(500);
 
-                                _inCompletedChunks.Remove(inCompletedChunk);
-                                Console.WriteLine($"CHUNK: {inCompletedChunk} COMPLETE");
+                                if (_inCompletedChunks.Count > 1)
+                                {
+                                    _inCompletedChunks.Remove(inCompletedChunk);
+                                }
+                                else //DET ER HER DEN CRASHER
+                                {
+                                    _inCompletedChunks.Remove(inCompletedChunk);
+                                    _inCompletedChunks.Add(-1);
+                                    //Console.WriteLine($"CHUNK: {inCompletedChunk} COMPLETE");
+                                    //_doingChunks.Remove(inCompletedChunk);
+                                    break;
+                                }
+                                
+                                Console.WriteLine($"CHUNK: {inCompletedChunk} COMPLETE BY: {socket.Client.RemoteEndPoint}");
                                 sw.WriteLine($"CHUNK: {inCompletedChunk} COMPLETE");
                                 _doingChunks.Remove(inCompletedChunk);
-                                break;
+                                continue;
                             }
+
+
                         }
                     }
+
                     string answer = "";
 
-                    //if (string.IsNullOrWhiteSpace(message)) break;
+                    if (string.IsNullOrWhiteSpace(message)) 
+                    {
+                        break;
+                    }
 
                     //////////////////////////////////////////////////////////////////////
                     /// HERE YOU WRITE YOUR PROTOCOL (WHAT TO DO WITH THE MESSAGE)
                     //////////////////////////////////////////////////////////////////////
 
                     answer = message.ToUpper();
+                    //answer = message + " hej";
 
                     Console.WriteLine("output: " + answer);
                     sw.WriteLine(answer);
@@ -145,6 +206,10 @@ namespace PasswordCrackerCentralized
                 catch (IOException e)
                 {
                     break;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("hahahha");
                 }
             }
 
@@ -177,7 +242,7 @@ namespace PasswordCrackerCentralized
                 */
             #endregion
 
-            //ns.Close();
+            ns.Close();
         }
 
         public List<List<string>> CreateChunks(string path, int chunkSize)
