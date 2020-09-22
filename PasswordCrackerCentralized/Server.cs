@@ -34,7 +34,7 @@ namespace PasswordCrackerCentralized
 
         public void Start()
         { 
-            stopwatch = Stopwatch.StartNew();
+            stopwatch = new Stopwatch();
             _lock = new object();
             userInfos =
                 PasswordFileHandler.ReadPasswordFile("passwords.txt");
@@ -102,19 +102,9 @@ namespace PasswordCrackerCentralized
 
                     if (message == "hack")
                     {
+                        stopwatch.Start();
                         Console.WriteLine(message);
                         sw.WriteLine(JsonConvert.SerializeObject(userInfos));
-                        //sw.WriteLine("userinfo");
-                        /* 
-                         * CLIENT
-                         * modtager userinfo
-                         * modtager liste
-                         * sender resultat
-                         * modtager liste
-                         * sender resultat
-                         * ....
-                         * ....
-                         */
 
                         while (_inCompletedChunks.Count > 0)
                         {
@@ -122,12 +112,8 @@ namespace PasswordCrackerCentralized
                             {
                                 break;
                             }
-                            //foreach (int inCompletedChunk in _inCompletedChunks)
-                            //{
-                            //}
 
-                            int inCompletedChunk;// = _inCompletedChunks[0];
-                            int chunkToWorkOn;
+                            int inCompletedChunk;
                             //if this chunk is already being processed, and quickly setting this to doingChunks
                             //----------------------------------------------------------------------------------------------------------------------
                             lock (_lock)
@@ -158,11 +144,11 @@ namespace PasswordCrackerCentralized
                                 else
                                 {
                                     sw.WriteLine("done");
+                                    _inCompletedChunks = new List<int>(){-1};
+                                    _doingChunks = new List<int>();
                                 }
-                                //List<string> listToWorkOn = Chunks[chunkToWorkOn];
-                                //sw.WriteLine(json);
                             }
-                            //Console.WriteLine(sr.ReadLine());
+                            //----------------------------------------------------------------------------------------------------------------------
 
                             String resultSerialized = sr.ReadLine();
                             if (resultSerialized == "empty")
@@ -179,41 +165,6 @@ namespace PasswordCrackerCentralized
                                 }
                             }
                             //Console.WriteLine(resultSerialized);
-
-                            /*
-                            if (chunkToWorkOn != -1)
-                            {
-                                //_doingChunks.Add(inCompletedChunk);
-                                List<string> listToWorkOn = Chunks[chunkToWorkOn];
-                                Console.WriteLine($"WORKING ON: {chunkToWorkOn}");
-                                foreach (string line in listToWorkOn)
-                                {
-                                    //IEnumerable<UserInfoClearText> partialResult = CheckWordWithVariations(line, userInfos);
-                                    //result.AddRange(partialResult);
-                                    sw.WriteLine(line);
-                                }
-                                Thread.Sleep(500);
-
-                                if (_inCompletedChunks.Count > 1)
-                                {
-                                    _inCompletedChunks.Remove(chunkToWorkOn);
-                                }
-                                else //DET ER HER DEN CRASHER
-                                {
-                                    _inCompletedChunks.Remove(chunkToWorkOn);
-                                    _inCompletedChunks.Add(-1);
-                                    //Console.WriteLine($"CHUNK: {inCompletedChunk} COMPLETE");
-                                    //_doingChunks.Remove(inCompletedChunk);
-                                    break;
-                                }
-
-                                Console.WriteLine($"CHUNK: {chunkToWorkOn} COMPLETE BY: {socket.Client.RemoteEndPoint}");
-                                sw.WriteLine($"CHUNK: {chunkToWorkOn} COMPLETE");
-                                _doingChunks.Remove(chunkToWorkOn);
-                                continue;
-                            }
-                            */
-
                         }
                     }
                     else //if we don't write hack
@@ -221,6 +172,8 @@ namespace PasswordCrackerCentralized
                         //Console.WriteLine(sr.ReadLine());
                     }
                     Console.WriteLine("We reached the bottom");
+                    stopwatch.Stop();
+                    Console.WriteLine(stopwatch.Elapsed);
                 }
                 catch (IOException e)
                 {
