@@ -6,7 +6,7 @@ using PasswordCrackerCentralized.model;
 
 namespace PasswordCrackerCentralized.util
 {
-    class PasswordFileHandler
+    public class PasswordFileHandler
     {
         private static readonly Converter<char, byte> Converter = CharToByte;
 

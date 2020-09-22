@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using PasswordCrackerCentralized.model;
 using PasswordCrackerCentralized.util;
 
@@ -27,12 +28,14 @@ namespace PasswordCrackerCentralized
         private List<UserInfo> userInfos;
         private List<UserInfoClearText> result;
 
+        private object _lock;
+
 
 
         public void Start()
         { 
             stopwatch = Stopwatch.StartNew();
-
+            _lock = new object();
             userInfos =
                 PasswordFileHandler.ReadPasswordFile("passwords.txt");
             //Console.WriteLine("passwd opeend");
@@ -99,22 +102,19 @@ namespace PasswordCrackerCentralized
 
                     if (message == "hack")
                     {
-                        /*  sende alt bruger userInfos
-                         *  sende enkelte linjer
-                         *  modtager et svar
-                         *
-                         * ERROR
-                         * liste bliver 0 imens den anden kigger på den
+                        Console.WriteLine(message);
+                        sw.WriteLine(JsonConvert.SerializeObject(userInfos));
+                        //sw.WriteLine("userinfo");
+                        /* 
+                         * CLIENT
+                         * modtager userinfo
+                         * modtager liste
+                         * sender resultat
+                         * modtager liste
+                         * sender resultat
+                         * ....
+                         * ....
                          */
-
-                        //int i = 10000;
-                        //while (i > 0)
-                        //{
-                        //    i--;
-                        //    if (i % 2 == 0) continue;
-                        //    Console.WriteLine(i);
-                        //    sw.WriteLine(i);
-                        //}
 
                         while (_inCompletedChunks.Count > 0)
                         {
@@ -126,15 +126,14 @@ namespace PasswordCrackerCentralized
                             //{
                             //}
 
-                            //taking the first not completed chunk
-                            int inCompletedChunk = _inCompletedChunks[0];
-
+                            int inCompletedChunk;// = _inCompletedChunks[0];
+                            int chunkToWorkOn;
                             //if this chunk is already being processed, and quickly setting this to doingChunks
                             //----------------------------------------------------------------------------------------------------------------------
-                            //THIS NEEDS TO BE LOCKED OR SOMETHING, SO ONLY ONE THREAD AND LOOK AND TAKE A CHUNK AT A TIME, 
-                            //THEN WHEN A THREAD HAVE PICKED A CHUNK, IT MOVES ON AND LETS THE NEXT THREAD LOOK AND TAKE
-                            if (_doingChunks.Contains(inCompletedChunk))
+                            lock (_lock)
                             {
+                                //taking the first not completed chunk
+                                inCompletedChunk = _inCompletedChunks[0];
                                 while (_doingChunks.Contains(inCompletedChunk))
                                 {
                                     if (_inCompletedChunks.Last() > inCompletedChunk)
@@ -147,14 +146,46 @@ namespace PasswordCrackerCentralized
                                     }
                                 }
                                 _doingChunks.Add(inCompletedChunk);
+                                //chunkToWorkOn = inCompletedChunk;
+                                if (inCompletedChunk != -1)
+                                {
+                                    List<string> listToWorkOn = Chunks[inCompletedChunk];
+                                    String toSend = JsonConvert.SerializeObject(listToWorkOn);
+                                    Console.WriteLine($"WORKING ON: {inCompletedChunk} BY: {socket.Client.RemoteEndPoint}");
+                                    sw.WriteLine(toSend);
+                                    //sw.WriteLine("chunk");
+                                }
+                                else
+                                {
+                                    sw.WriteLine("done");
+                                }
+                                //List<string> listToWorkOn = Chunks[chunkToWorkOn];
+                                //sw.WriteLine(json);
                             }
-                            else _doingChunks.Add(inCompletedChunk);
+                            //Console.WriteLine(sr.ReadLine());
 
-                            if (inCompletedChunk != -1)
+                            String resultSerialized = sr.ReadLine();
+                            if (resultSerialized == "empty")
+                            {
+                                //Console.WriteLine("empty");
+                            }
+                            else
+                            {
+                                IEnumerable<UserInfoClearText> partialResult = JsonConvert.DeserializeObject<IEnumerable<UserInfoClearText>>(resultSerialized);
+                                result.AddRange(partialResult);
+                                foreach (UserInfoClearText hej in result)
+                                {
+                                    Console.WriteLine(hej);
+                                }
+                            }
+                            //Console.WriteLine(resultSerialized);
+
+                            /*
+                            if (chunkToWorkOn != -1)
                             {
                                 //_doingChunks.Add(inCompletedChunk);
-                                List<string> listToWorkOn = Chunks[inCompletedChunk];
-                                Console.WriteLine($"WORKING ON: {inCompletedChunk}");
+                                List<string> listToWorkOn = Chunks[chunkToWorkOn];
+                                Console.WriteLine($"WORKING ON: {chunkToWorkOn}");
                                 foreach (string line in listToWorkOn)
                                 {
                                     //IEnumerable<UserInfoClearText> partialResult = CheckWordWithVariations(line, userInfos);
@@ -165,43 +196,31 @@ namespace PasswordCrackerCentralized
 
                                 if (_inCompletedChunks.Count > 1)
                                 {
-                                    _inCompletedChunks.Remove(inCompletedChunk);
+                                    _inCompletedChunks.Remove(chunkToWorkOn);
                                 }
                                 else //DET ER HER DEN CRASHER
                                 {
-                                    _inCompletedChunks.Remove(inCompletedChunk);
+                                    _inCompletedChunks.Remove(chunkToWorkOn);
                                     _inCompletedChunks.Add(-1);
                                     //Console.WriteLine($"CHUNK: {inCompletedChunk} COMPLETE");
                                     //_doingChunks.Remove(inCompletedChunk);
                                     break;
                                 }
-                                
-                                Console.WriteLine($"CHUNK: {inCompletedChunk} COMPLETE BY: {socket.Client.RemoteEndPoint}");
-                                sw.WriteLine($"CHUNK: {inCompletedChunk} COMPLETE");
-                                _doingChunks.Remove(inCompletedChunk);
+
+                                Console.WriteLine($"CHUNK: {chunkToWorkOn} COMPLETE BY: {socket.Client.RemoteEndPoint}");
+                                sw.WriteLine($"CHUNK: {chunkToWorkOn} COMPLETE");
+                                _doingChunks.Remove(chunkToWorkOn);
                                 continue;
                             }
-
+                            */
 
                         }
                     }
-
-                    string answer = "";
-
-                    if (string.IsNullOrWhiteSpace(message)) 
+                    else //if we don't write hack
                     {
-                        break;
+                        //Console.WriteLine(sr.ReadLine());
                     }
-
-                    //////////////////////////////////////////////////////////////////////
-                    /// HERE YOU WRITE YOUR PROTOCOL (WHAT TO DO WITH THE MESSAGE)
-                    //////////////////////////////////////////////////////////////////////
-
-                    answer = message.ToUpper();
-                    //answer = message + " hej";
-
-                    Console.WriteLine("output: " + answer);
-                    sw.WriteLine(answer);
+                    Console.WriteLine("We reached the bottom");
                 }
                 catch (IOException e)
                 {
@@ -209,7 +228,7 @@ namespace PasswordCrackerCentralized
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine("hahahha");
+                    Console.WriteLine("hahahha: " + e.Message);
                 }
             }
 

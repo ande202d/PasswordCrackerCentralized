@@ -4,7 +4,7 @@ using System.Text;
 
 namespace PasswordCrackerCentralized.util
 {
-    class StringUtilities
+    public class StringUtilities
     {
         public static String Capitalize(String str)
         {

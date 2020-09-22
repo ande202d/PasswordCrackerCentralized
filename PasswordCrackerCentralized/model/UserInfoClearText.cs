@@ -5,7 +5,7 @@ namespace PasswordCrackerCentralized.model
     /// <summary>
     /// Username + password in clear text (that is human readable)
     /// </summary>
-    class UserInfoClearText
+    public class UserInfoClearText
     {
         public String UserName { get; set; }
         public String Password { get; set; }
