@@ -25,7 +25,8 @@ namespace CrackerClient
         public void Start()
         {
             Console.WriteLine("Waiting for server");
-            TcpClient client = new TcpClient("127.0.0.1", 7000);
+            //TcpClient client = new TcpClient("127.0.0.1", 7000);
+            TcpClient client = new TcpClient("192.168.104.137", 7000);
 
 
             NetworkStream ns = client.GetStream();

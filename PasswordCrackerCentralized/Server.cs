@@ -45,7 +45,8 @@ namespace PasswordCrackerCentralized
             Chunks = CreateChunks("webster-dictionary.txt", 10000);
 
             //IP configuration
-            IPAddress ipa = IPAddress.Parse("127.0.0.1");
+            //IPAddress ipa = IPAddress.Parse("127.0.0.1");
+            IPAddress ipa = IPAddress.Parse("192.168.104.137");
 
             TcpListener tcp = new TcpListener(ipa, 7000);
 
