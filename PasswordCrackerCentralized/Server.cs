@@ -56,29 +56,66 @@ namespace PasswordCrackerCentralized
 
             while (true)
             {
-                Task.Run(() =>
+                if (tcp.Pending())
                 {
-                    TcpClient tempSocket = tcp.AcceptTcpClient();
-                    EndPoint clientIP = tempSocket.Client.RemoteEndPoint;
-                    Console.WriteLine(clientIP + ": CONNECTED");
-                    _clientsConnected++;
-
-                    DoClient(tempSocket);
-
-                    if (!tempSocket.Connected)
+                    Task.Run(() =>
                     {
+                        TcpClient tempSocket = tcp.AcceptTcpClient();
+                        EndPoint clientIP = tempSocket.Client.RemoteEndPoint;
+                        Console.WriteLine(clientIP + ": CONNECTED");
+                        _clientsConnected++;
+
+                        DoClient(tempSocket);
+
+                        //if (!tempSocket.Connected)
+                        //{
+                        //    Console.WriteLine(clientIP + ": DISCONNECTED");
+                        //    _clientsConnected--;
+                        //}
                         Console.WriteLine(clientIP + ": DISCONNECTED");
                         _clientsConnected--;
-                    }
-                    tempSocket.Close();
-                });
-
-                if (_inCompletedChunks.Count <= 0)
-                {
-                    stopwatch.Stop();
-                    break;
+                        tempSocket.Close();
+                        //if (thread != null) thread.Abort();
+                        //thread.Abort();
+                    });
                 }
+
+                //Console.WriteLine(_clientsConnected);
+                //Console.WriteLine(Process.GetCurrentProcess().Threads.Count);
             }
+
+
+            //while (true)
+            //{
+            //    Task.Run(() =>
+            //    {
+            //        //Thread thread = Thread.CurrentThread;
+            //        TcpClient tempSocket = tcp.AcceptTcpClient();
+            //        EndPoint clientIP = tempSocket.Client.RemoteEndPoint;
+            //        Console.WriteLine(clientIP + ": CONNECTED");
+            //        _clientsConnected++;
+
+            //        DoClient(tempSocket);
+
+            //        if (!tempSocket.Connected)
+            //        {
+            //            Console.WriteLine(clientIP + ": DISCONNECTED");
+            //            _clientsConnected--;
+            //        }
+            //        tempSocket.Close();
+            //        //if (thread != null) thread.Abort();
+            //        //thread.Abort();
+            //    });
+
+            //    if (_inCompletedChunks.Count <= 0)
+            //    {
+            //        stopwatch.Stop();
+            //        break;
+            //    }
+            //    //Console.WriteLine(Process.GetCurrentProcess().Threads.Count);
+            //    //Thread.Sleep(100);
+            //    //Console.WriteLine("test");
+            //}
 
             Console.WriteLine("Done");
             Console.WriteLine($"Took: {stopwatch.Elapsed}");
