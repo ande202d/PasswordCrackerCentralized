@@ -61,30 +61,29 @@ namespace PasswordCrackerCentralized
                     Task.Run(() =>
                     {
                         TcpClient tempSocket = tcp.AcceptTcpClient();
-                        EndPoint clientIP = tempSocket.Client.RemoteEndPoint;
-                        Console.WriteLine(clientIP + ": CONNECTED");
                         _clientsConnected++;
+                        EndPoint clientIP = tempSocket.Client.RemoteEndPoint;
+                        Console.WriteLine(clientIP + ": CONNECTED, total clients: " + _clientsConnected);
 
                         DoClient(tempSocket);
 
-                        //if (!tempSocket.Connected)
-                        //{
-                        //    Console.WriteLine(clientIP + ": DISCONNECTED");
-                        //    _clientsConnected--;
-                        //}
-                        Console.WriteLine(clientIP + ": DISCONNECTED");
                         _clientsConnected--;
+                        Console.WriteLine(clientIP + ": DISCONNECTED, total clients: " + _clientsConnected);
                         tempSocket.Close();
-                        //if (thread != null) thread.Abort();
-                        //thread.Abort();
                     });
                 }
 
-                //Console.WriteLine(_clientsConnected);
-                //Console.WriteLine(Process.GetCurrentProcess().Threads.Count);
+                if (_inCompletedChunks.Count == 0)
+                {
+                    stopwatch.Stop();
+                    break;
+                }
+
+                //Console.WriteLine("test");
             }
 
 
+            #region old while loop
             //while (true)
             //{
             //    Task.Run(() =>
@@ -115,10 +114,19 @@ namespace PasswordCrackerCentralized
             //    //Console.WriteLine(Process.GetCurrentProcess().Threads.Count);
             //    //Thread.Sleep(100);
             //    //Console.WriteLine("test");
+            //} 
+            #endregion
+
+            //Console.WriteLine("\n\n-----PASSWORDS FOUND-----");
+            //foreach (UserInfoClearText r in result)
+            //{
+            //    Console.WriteLine(r);
             //}
 
+            Console.WriteLine("\n-------------------------");
             Console.WriteLine("Done");
             Console.WriteLine($"Took: {stopwatch.Elapsed}");
+            Console.WriteLine("-------------------------\n");
 
             tcp.Stop();
         }
@@ -182,7 +190,8 @@ namespace PasswordCrackerCentralized
                                 else
                                 {
                                     sw.WriteLine("done");
-                                    _inCompletedChunks = new List<int>(){-1};
+                                    //_inCompletedChunks = new List<int>(){-1};
+                                    _inCompletedChunks = new List<int>();
                                     _doingChunks = new List<int>();
                                 }
                             }
@@ -209,9 +218,9 @@ namespace PasswordCrackerCentralized
                     {
                         //Console.WriteLine(sr.ReadLine());
                     }
-                    Console.WriteLine("We reached the bottom");
-                    stopwatch.Stop();
-                    Console.WriteLine(stopwatch.Elapsed);
+                    //Console.WriteLine("We reached the bottom");
+                    //stopwatch.Stop();
+                    //Console.WriteLine(stopwatch.Elapsed);
                 }
                 catch (IOException e)
                 {
